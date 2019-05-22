@@ -7,10 +7,16 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "http-server -c-1 -o http://127.0.0.1:8080/index.html"
   },
-  "author": "",
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dicarne/VC2015GC-ZJGSU-CS1601-G16.git"
+  },  
+  "bugs": {
+    "url": "https://github.com/dicarne/VC2015GC-ZJGSU-CS1601-G16/issues"
+  },
+  "homepage": "https://github.com/dicarne/VC2015GC-ZJGSU-CS1601-G16#readme",
+  "author": "Ding jiahe, Quan yuru, Lou hanxin",
+  "license": "MIT",
   "devDependencies": {},
-  "dependencies": {
-    "d3": "^5.9.2"
-  }
+  "dependencies": {}
 }
