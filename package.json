@@ -1,0 +1,16 @@
+{
+  "name": "vc2015gc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "http-server -c-1 -o http://127.0.0.1:8080/index.html"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {},
+  "dependencies": {
+    "d3": "^5.9.2"
+  }
+}
