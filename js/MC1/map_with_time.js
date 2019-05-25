@@ -51,6 +51,7 @@ function Update(){
             DrawTravelLine(MapDataArray[CurrentDataIndex]);
         }
         Update();
+        DrawLoop();
     }, 100);
 }
 
@@ -60,6 +61,8 @@ function Update(){
  * @param {number} id 用户id
  */
 function DrawTravelLine(id) {
+    drawData = [];
+    drawDataIndex = 0;
     console.log(id);
     context.clearRect(0,0,width,height);
 
@@ -71,27 +74,20 @@ function DrawTravelLine(id) {
     var posdata = MapData.get(id);
 
     // 根据每一项数据记录依次绘制路线图
-    let ix = -100, iy = -100;
-    let fg = true;
     let arr = Array.from(posdata.values());
-    for (let i = 0; i < arr.length; i++) {
-        const ele = arr[i];
-        ix = ele.x;
-        iy = ele.y;
+
+    for (let i = 0; i < arr.length - 1; i++) {
         
-        if (fg) {
-            context.beginPath();
-            context.moveTo(ix, iy);
-            fg = false;
+        let data = {
+            Timestamp: 0,
+            array: new Array()
         }
-        context.lineTo(ix, iy);
-        context.strokeStyle = color(i / arr.length);
-        context.stroke();
-
-        context.beginPath();
-        context.moveTo(ix, iy);
+        data.array.push({
+            begin: arr[i],
+            end:arr[i+1]
+        });
+        DrawMap(data);
     }
-
     console.log("end");
 }
 
@@ -112,4 +108,29 @@ function id_select_changed(event){
     console.log(id_slider.value);
     DrawTravelLine(MapDataArray[id_slider.value]);
     CurrentDataIndex = id_slider.value;
+}
+/**
+ * 数据绘制列表
+ */
+let drawData = [];
+let drawDataIndex = 0;
+function DrawMap(data){
+    drawData.push(data);
+}
+
+/**
+ * 根据drawData中的数据依次绘制路线
+ */
+function DrawLoop(){
+    if(drawData.length == 0 || drawDataIndex >= drawData.length) return;
+    let data = drawData[drawDataIndex];
+    drawDataIndex++;
+    let arr = data.array;
+    for (let i = 0; i < arr.length; i++) {
+        const ele = arr[i];
+        context.beginPath();
+        context.moveTo(ele.begin.x, ele.begin.y);
+        context.lineTo(ele.end.x, ele.end.y);
+        context.stroke();
+    }
 }
