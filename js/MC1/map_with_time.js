@@ -21,27 +21,43 @@ let CurrentDataIndex;
 var posdata = [];
 var mapimg = new Image();
 var maploaded = false;
+
+var heatmapInstance = h337.create({
+    // only container is required, the rest will be defaults
+    container: document.querySelector('#heat_map')
+});
+
 /**
  * 开始一切分析，导入数据，初始化
  */
 export async function Start() {
     id_slider_init();
     mapimg.src = "../analyse/ParkMap.jpg";
-    mapimg.onload = function() {
+    mapimg.onload = function () {
         maploaded = true;
     }
+
     await d3.csv("../../data/MC1 Data 2015/park-movement-Fri-FIXED-2.0.csv", d => {
         let idmap = MapData.get(d.id);
         if (!idmap) {
             MapData.set(d.id, new Map());
             idmap = MapData.get(d.id);
+            idmap.friend = new Map();
         }
         idmap.set(d.Timestamp, { id: d.id, Timestamp: d.Timestamp, type: d.type, x: d.X * 10, y: d.Y * 10 })
-        posdata.push(d);
+        if (posdata.length > 0 && posdata[posdata.length - 1].Timestamp == d.Timestamp) {
+            posdata[posdata.length - 1].array.push(d);
+        }
+        else {
+            posdata.push({ Timestamp: d.Timestamp, array: [d] });
+        }
+        //d.friend = new Map();
+
+
     });
     MapDataArray = Array.from(MapData.keys());
     id_slider.min = 0;
-    id_slider.max = MapDataArray.length - 1;
+    id_slider.max = posdata.length - 1;
     CurrentDataIndex = id_slider.value;
     //DrawTravelLine(MapDataArray[id_slider.value]);
     //UpdateOneUserLine();
@@ -110,8 +126,8 @@ function id_slider_init() {
  */
 function id_select_changed(event) {
     console.log(id_slider.value);
-    DrawTravelLine(MapDataArray[id_slider.value]);
-    CurrentDataIndex = id_slider.value;
+    UAUWT_index = id_slider.value;
+    DrawAllUserPos_init();
 }
 /**
  * 数据绘制列表
@@ -147,50 +163,64 @@ function UpdateAllUsersWithTime() {
         UpdateAllUsersWithTime();
     }, 10);
 }
-
 var UAUWT_index = 0;
 var PassedTimeQueue = [];
 var timetext;
 var LastUsers = new Map();
+function DrawAllUserPos_init() {
+    LastUsers = new Map();
+}
+
 function DrawAllUsersPos() {
     if (!timetext)
         timetext = document.getElementById("Timestamp");
     context.clearRect(0, 0, width, height);
-    context.drawImage(mapimg,0,0,1000, 1000)
-    if (UAUWT_index >= posdata.length) {
-        UAUWT_index = 0;
-        LastUsers = new Map();
-    }
-    let currentTime = posdata[UAUWT_index].Timestamp;
-    let CurrentUsersPos = new Map();
-    // 将当前时间戳的所有用户保存起来
-    while (posdata[UAUWT_index].Timestamp == currentTime) {
-        let thisuser = posdata[UAUWT_index];
-        let key = thisuser.X + "," + thisuser.Y;
-        if (!CurrentUsersPos.has(key))
-            CurrentUsersPos.set(key, []);
-        CurrentUsersPos.get(key).push(thisuser);
-        UAUWT_index++;
-    }
-    let CurrentUsers = new Map();
-    // 绘制当前时间和前一个时刻的用户位置及方向
-    CurrentUsersPos.forEach((value) => {
-        context.beginPath();
-        context.arc(value[0].X * 10, 1000 - value[0].Y * 10, 3, 0, 2 * Math.PI);
-        for (let i = 0; i < value.length; i++) {
-            const ele = value[i];
-            CurrentUsers.set(ele.id, ele);
-            const pre = LastUsers.get(ele.id);
-            if (pre) {
-                context.moveTo(pre.X * 10, 1000 - pre.Y * 10);
-                context.lineTo(ele.X * 10, 1000 - ele.Y * 10);
-                context.stroke();
-            }
+    context.drawImage(mapimg, 0, 0, 1000, 1000)
+    const skip = 30;
+    for (let it = 0; it < skip; it++) {
+        if (UAUWT_index >= posdata.length) {
+            UAUWT_index = 0;
+            LastUsers = new Map();
         }
-        context.fillStyle = "#000";
-        context.fill();
-    })
+        var currentTime = posdata[UAUWT_index].Timestamp;
+        let CurrentUsersPos = new Map();
+        // 将当前时间戳的所有用户保存起来
+        while (posdata[UAUWT_index].Timestamp == currentTime) {
+            let thisuser = posdata[UAUWT_index];
+            for (let index = 0; index < thisuser.array.length; index++) {
+                const el = thisuser.array[index];
+                let key = pos2id(el.X, el.Y);
+                if (!CurrentUsersPos.has(key))
+                    CurrentUsersPos.set(key, []);
+                CurrentUsersPos.get(key).push(el);
+            }
+            UAUWT_index++;
+        }
+        let CurrentUsers = new Map();
+        // 绘制当前时间和前一个时刻的用户位置及方向
+        CurrentUsersPos.forEach((value) => {
+            if (it == skip - 1) context.beginPath();
+            if (it == skip - 1) context.arc(value[0].X * 10, 1000 - value[0].Y * 10, 3, 0, 2 * Math.PI);
+            for (let i = 0; i < value.length; i++) {
+                const ele = value[i];
+                CurrentUsers.set(ele.id, ele);
+                if (it == skip - 1) {
+                    const pre = LastUsers.get(ele.id);
+                    if (pre) {
+                        context.moveTo(pre.X * 10, 1000 - pre.Y * 10);
+                        context.lineTo(ele.X * 10, 1000 - ele.Y * 10);
+                        context.stroke();
+                    }
+                }
+            }
+            if (it == skip - 1) context.fillStyle = "#000";
+            if (it == skip - 1) context.fill();
+        })
+        CurrentUsers.forEach((value, key) => {
+            LastUsers.set(key, value);
+        })
 
+    }
     LastUsers.forEach((value) => {
         context.beginPath();
         context.arc(value.X * 10, 1000 - value.Y * 10, 2, 0, 2 * Math.PI);
@@ -198,9 +228,78 @@ function DrawAllUsersPos() {
         context.fill();
     })
 
-    timetext.innerHTML = currentTime;
+
     PassedTimeQueue.push(currentTime);
-    CurrentUsers.forEach((value, key) => {
-        LastUsers.set(key, value);
+
+
+    timetext.innerHTML = currentTime;
+    // 将上一个当前在登记中的所有用户以位置为id加入posmap中
+    posmap = new Map();
+    LastUsers.forEach((value) => {
+        const key = pos2id(value.X, value.Y);
+        let p = posmap.get(key);
+        if (!p) {
+            let dk = [value];
+            dk.X = value.X;
+            dk.Y = value.Y;
+            posmap.set(key, dk);
+        } else {
+            p.push(value);
+        }
     })
+
+    var data = {
+        max: 0,
+        data: []
+    };
+    let m = 0;
+    posmap.forEach((p, k) => {
+        data.data.push({ x: parseInt(p.X) * 10, y: 1000 - parseInt(p.Y) * 10, value: p.length });
+        if (p.length > m)
+            m = p.length;
+    })
+    data.max = m;
+
+
+    // if you have a set of datapoints always use setData instead of addData
+    // for data initialization
+    heatmapInstance.setData(data);
+
+    //posmap.forEach((locdata, pos) => {
+    //    locdata.forEach((people) => {
+    //        MakeFriendsAround(people, 2);
+    //    })
+    //})
+}
+
+function MakeFriendsAround(master, radius) {
+    for (let ix = -radius; ix <= radius; ix++) {
+        for (let iy = -radius; iy <= radius; iy++) {
+            const getpeople = posmap.get(pos2id(parseInt(master.X) + ix, parseInt(master.Y) + iy));
+            if (getpeople) {
+                getpeople.forEach((onepeople) => {
+                    if (onepeople.id != master.id) {
+                        let masterfri = MapData.get(master.id).friend;
+                        let fri = masterfri.get(onepeople.id);
+                        if (!fri) {
+                            masterfri.set(onepeople.id, 1);
+                        } else {
+                            masterfri.set(onepeople.id, fri + 1);
+                        }
+                    }
+                })
+            }
+
+        }
+    }
+}
+
+var posmap = new Map();
+/**
+ * 将坐标转换为字典可用的id
+ * @param {int} x 
+ * @param {int} y 
+ */
+function pos2id(x, y) {
+    return x + "," + y;
 }

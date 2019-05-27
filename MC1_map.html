@@ -3,14 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <script src="js/d3/d3.js"></script>
+    <script src="js/heatmap/heatmap.js"></script>
     <script type='module' src="js/vc2015gc.js"></script>
+    <style>
+        .map{
+            position: absolute;
+            left : 10;
+            top : 10;
+            width: 1000px;
+            height: 1000px;
+        }
+    </style>
 </head>
 
 <body>
-    <canvas id="comm_wheel" width="1000" height="1000"></canvas>
-    <input type="range" id="id_slider" style="width: 1000px">
     <div>
         <p id = "Timestamp"></p>
     </div>
+    <canvas id="comm_wheel" class="map" width="1000" height="1000"></canvas>
+    <div id="heat_map" class="map" width="1000" height="1000"></div>
+    <input type="range" id="id_slider" style="width: 1000px">
+    
 </body>
 </html>
