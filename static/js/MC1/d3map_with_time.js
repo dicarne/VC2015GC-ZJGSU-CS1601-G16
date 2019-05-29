@@ -14,49 +14,54 @@ export function Start() {
 
     updateTimeLine(0)
 }
-
+let betweenTime = 100;
 function updateTimeLine(t) {
     setTimeout(() => {
         showPosAtTime(t);
-    }, 1000 / 60);
+    }, betweenTime);
 }
 var a = d3.rgb(20, 20, 20);
-var b = d3.rgb(0, 255, 0);
+var b = d3.rgb(100, 100, 100);
 
 var computeColor = d3.interpolate(a, b);
 var linear = d3.scaleLinear()
     .domain([0, 150])
     .range([0, 1]);
+
+var checkRectColor =
+    x => d3.interpolate(d3.rgb("#00CC00"), d3.rgb("#FF3300"))(d3.scaleLinear()
+        .domain([0, 200])
+        .range([0, 1])(x))
+
 let timetext = document.getElementById("Timestamp");
 let previous = new Map();
 async function showPosAtTime(time_t) {
-    let data = await d3.json("/api/map/fri/" + time_t);
-    let map = new Array(10000);
-
-    let timedata = data;
-    if (timedata == null)
-        updateTimeLine(time_t)
-    let current = timedata.array;
-    previous.forEach(user => {
-        user.lastUpdate++;
-    })
-    current.forEach(user => {
-        user.lastUpdate = 0;
-        previous.set(user.id, user);
-    });
-    let drawdata = Array.from(previous.values());
-    svg.selectAll("circle")
-        .data(drawdata)
-        .join("circle")
-        .attr("r", 5)
-        .transition()
-        .duration(100)
-        .attr("cx", d => d.X * 10)
-        .attr("cy", d => (100 - d.Y) * 10)
-        .attr("fill", d => {
-            return computeColor(linear(d.lastUpdate));
+    let timedata;
+    for (let i = 0; i < 60; i++) {
+        timedata = await d3.json("/api/map/fri/" + time_t);
+        time_t++;
+        let map = new Array(10000);
+        if (timedata == null)
+            updateTimeLine(time_t)
+        let current = timedata.array;
+        previous.forEach(user => {
+            user.lastUpdate++;
         })
+        current.forEach(user => {
+            user.lastUpdate = 0;
+            previous.set(user.id, user);
+        });
+    }
 
+    let drawdata = Array.from(previous.values());
+    drawSpot(drawdata)
+    drawUsers(drawdata)
+    timetext.innerHTML = timedata.Timestamp;
+
+    updateTimeLine(time_t)
+}
+
+function drawSpot(drawdata) {
     let check_in_map = new Map();
     drawdata.forEach(u => {
         if (u.type == "check-in") {
@@ -71,18 +76,33 @@ async function showPosAtTime(time_t) {
         }
     })
     let check_in_array = Array.from(check_in_map.values())
-    svg.selectAll("rect")
+    svg.selectAll(".spot")
         .data(check_in_array)
-        .join("rect")
-        .attr("x", d => d.X * 10)
-        .attr("y", d=> (100 - d.Y) * 10)
-        .attr("width", 15)
-        .attr("height", d => d.length)
-        .attr("fill", "#66ccff")
-    timetext.innerHTML = timedata.Timestamp;
-    updateTimeLine(time_t + 1)
+        .join("circle")
+        .attr("class", "spot")
+        .attr("cx", d => d.X * 10)
+        .attr("cy", d => (100 - d.Y) * 10)
+        //.attr("r", 10)
+        .attr("r", d => Math.sqrt(d.length) * 2)
+        .attr("fill", d => checkRectColor(d.length))
+        .attr("stroke", "#4B4B4B")
+        .attr("stroke-width", "2")
 }
 
+function drawUsers(drawdata) {
+    svg.selectAll(".user")
+        .data(drawdata)
+        .join("circle")
+        .attr("class", "user")
+        .attr("r", 5)
+        .transition()
+        .duration(betweenTime)
+        .attr("cx", d => d.X * 10)
+        .attr("cy", d => (100 - d.Y) * 10)
+        .attr("fill", d => {
+            return computeColor(linear(d.lastUpdate));
+        })
+}
 
 
 /**
