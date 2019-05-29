@@ -1,5 +1,4 @@
-import * as comm from "./analyse_comment.js"
-import * as mc1 from "./MC1/map_with_time.js"
+import * as mc1 from "./MC1/d3map_with_time.js"
 
 StartAnalyse()
 
