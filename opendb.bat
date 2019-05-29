@@ -1,1 +1,1 @@
-mongod --dbpath %cd%\data\db
+mongod --dbpath %cd%\data\db --bind_ip 0.0.0.0

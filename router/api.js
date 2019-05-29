@@ -39,39 +39,40 @@ async function getDb() {
             rej(error)
     })
 }
+DBqueue()
+let map_pos_fri = []
+let dbo;
+async function DBqueue() {
 
-//DBqueue()
-//
-//async function DBqueue() {
-//    let dbo = await getDb();
-//    let res1 = await dbo.collection("movement").distinct("id");
-//    let data = []
-//    res1.forEach(d=>{
-//        data.push({id: d})
-//    })
-//    await dbo.collection("users").insertMany(data);
-//    dbo.db_connect.close();
-//}
+    dbo = await getDb();
+    let res1 = await dbo.collection("movement_timeline").find({ "day": 5 }).toArray();
+    map_pos_fri = res1;
+    console.log("时间索引读取完成")
+    //dbo.db_connect.close();
+}
 
 
-let index_map_fri = 0;
-let map_fri_array = [];
-let map_fri_head = [];
-let map_fri_complete = false;
-//
-//function getMapFriData(time) {
-//    if (time < map_fri_array.length) {
-//        return map_fri_array[time];
-//    }
-//    else {
-//        return null;
-//    }
-//}
+async function getMapFriData(time, current_day, callback) {
+    time = parseInt(time)
+    if (time >= map_pos_fri.length)
+        return new Promise((res) => {
+            return null
+        })
+    //let dbo = await getDb();
+    let res1 = await dbo.collection("movement").find({ "Timestamp": map_pos_fri[time].Timestamp }).toArray();
+    //dbo.db_connect.close();
+    callback(res1, map_pos_fri[time])
+}
 
-//route.get("/map/:day/:time", (req, res) => {
-//    let day = req.param("day");
-//    let time = req.param("time");
-//    if (day == "fri") {
-//        res.json(getMapFriData(time))
-//    }
-//})
+route.get("/map/:day/:time", async (req, res) => {
+    let day = req.param("day");
+    let time = req.param("time");
+    if (day == "fri") {
+        getMapFriData(time, 5, (data, time) => {
+            res.json({
+                array: data,
+                Timestamp: time
+            })
+        })
+    }
+})

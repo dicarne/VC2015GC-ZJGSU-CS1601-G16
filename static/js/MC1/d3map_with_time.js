@@ -14,7 +14,7 @@ export function Start() {
 
     updateTimeLine(0)
 }
-let betweenTime = 100;
+let betweenTime = 10;
 function updateTimeLine(t) {
     setTimeout(() => {
         showPosAtTime(t);
