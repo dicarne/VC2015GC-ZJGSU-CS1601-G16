@@ -1,0 +1,1 @@
+mongod --dbpath %cd%\data\db

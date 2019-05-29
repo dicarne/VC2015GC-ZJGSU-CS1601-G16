@@ -35,9 +35,10 @@ var checkRectColor =
 
 let timetext = document.getElementById("Timestamp");
 let previous = new Map();
+let skiptime = 1;
 async function showPosAtTime(time_t) {
     let timedata;
-    for (let i = 0; i < 60; i++) {
+    for (let i = 0; i < skiptime; i++) {
         timedata = await d3.json("/api/map/fri/" + time_t);
         time_t++;
         let map = new Array(10000);
