@@ -38,8 +38,15 @@ let previous = new Map();
 let skiptime = 1;
 async function showPosAtTime(time_t) {
     let timedata;
+    if (pause) {
+        setTimeout(() => {
+            updateTimeLine(time_t)
+        }, 500);
+        
+        return
+    }
     for (let i = 0; i < skiptime; i++) {
-        timedata = await d3.json("/api/map/fri/" + time_t);
+        timedata = await d3.json("/api/map/sat/" + time_t);
         time_t++;
         let map = new Array(10000);
         if (timedata == null)
@@ -57,7 +64,8 @@ async function showPosAtTime(time_t) {
     let drawdata = Array.from(previous.values());
     drawSpot(drawdata)
     drawUsers(drawdata)
-    timetext.innerHTML = timedata.Timestamp;
+    let date = timedata.Timestamp
+    timetext.innerHTML = date.Timestamp;
 
     updateTimeLine(time_t)
 }
@@ -81,28 +89,81 @@ function drawSpot(drawdata) {
         .data(check_in_array)
         .join("circle")
         .attr("class", "spot")
-        .attr("cx", d => d.X * 10)
-        .attr("cy", d => (100 - d.Y) * 10)
+        .attr("cx", d => { d.cx = d.X * 10; return d.cx; })
+        .attr("cy", d => { d.cy = (100 - d.Y) * 10; return d.cy; })
         //.attr("r", 10)
         .attr("r", d => Math.sqrt(d.length) * 2)
         .attr("fill", d => checkRectColor(d.length))
         .attr("stroke", "#4B4B4B")
         .attr("stroke-width", "2")
+        .on("mouseover", d => {
+            console.log(d)
+            let fx = 0;
+            if(d.cx >= 800)
+                fx = d.cx - 100;
+            else
+                fx = d.cx
+            svg.append("rect")
+                .attr("x", fx)
+                .attr("y", d.cy - 20)
+                .attr("width", 100)
+                .attr("height", 25)
+                .attr("fill", "#fff")
+                .attr("class", "user-tips")
+            svg.append("text")
+                .attr("x", fx)
+                .attr("y", d.cy)
+                .text("x:" + d.X + ";y:" + d.Y)
+                .attr("class", "user-tips")
+            
+            pause = true;
+        })
+        .on("mouseout", d => {
+            d3.selectAll(".user-tips").remove()
+            pause = false;
+        })
 }
-
+var pause = false;
 function drawUsers(drawdata) {
     svg.selectAll(".user")
         .data(drawdata)
         .join("circle")
         .attr("class", "user")
         .attr("r", 5)
+        .on("mouseover", d => {
+            console.log(d)
+            let fx = 0;
+            if(d.cx >= 800)
+                fx = d.cx - 100;
+            else
+                fx = d.cx
+            svg.append("rect")
+                .attr("x", fx)
+                .attr("y", d.cy - 20)
+                .attr("width", 100)
+                .attr("height", 25)
+                .attr("fill", "#fff")
+                .attr("class", "user-tips")
+            svg.append("text")
+                .attr("x", fx)
+                .attr("y", d.cy)
+                .text("x:" + d.X + ";y:" + d.Y)
+                .attr("class", "user-tips")
+            
+            pause = true;
+        })
+        .on("mouseout", d => {
+            d3.selectAll(".user-tips").remove()
+            pause = false;
+        })
         .transition()
         .duration(betweenTime)
-        .attr("cx", d => d.X * 10)
-        .attr("cy", d => (100 - d.Y) * 10)
+        .attr("cx", d => { d.cx = d.X * 10; return d.cx; })
+        .attr("cy", d => { d.cy = (100 - d.Y) * 10; return d.cy; })
         .attr("fill", d => {
             return computeColor(linear(d.lastUpdate));
         })
+
 }
 
 

@@ -67,12 +67,22 @@ async function getMapFriData(time, current_day, callback) {
 route.get("/map/:day/:time", async (req, res) => {
     let day = req.param("day");
     let time = req.param("time");
+    let dayin = 0;
     if (day == "fri") {
-        getMapFriData(time, 5, (data, time) => {
-            res.json({
-                array: data,
-                Timestamp: time
-            })
-        })
+        dayin = 5
     }
+    if (day == "sat") {
+        dayin = 6
+    }
+    if (day == "sun") {
+        dayin = 7
+    }
+    if (!dayin)
+        res.json({ error: "out of day range" })
+    getMapFriData(time, dayin, (data, time) => {
+        res.json({
+            array: data,
+            Timestamp: time
+        })
+    })
 })
