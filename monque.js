@@ -33,47 +33,162 @@ let dbo;
 async function DBqueue() {
 
     dbo = await getDb();
+    let i = 0;
+    dbo.collection("users").find({ "neibor.day": 6 }).forEach(item => {
+        dbo.collection("users").findOne({ "id": item.id }, d => {
+            let di = 0;
+            let newdata;
+            for (di = 0; di < item.neibor.length; di++) {
+                const day = item.neibor[di];
+                if (day.day == 6) {
+                    newdata = day.data
+                    for (let i = 0; i < day.data.length; i++) {
+                        el = day.data[i];
+                        el.id = el._id
+                        delete el._id
+                    }
+                    break;
+                }
+            }
+            dbo.collection("users")
+            .updateOne({ "id": item.id }, 
+            { $set:{
+                "neibor.$[day]":newdata
+            } },
+            {
+                arrayFilters : [
+                    {
+                        "day": 6
+                    }
+                ]
+            })
+            i++;
+            if (i % 1000 == 0)
+                console.log("running");
+        })
 
-    // 计算每个人在游乐园呆了几天
-    let users = await dbo.collection("users").find({}).toArray()
-    var i = 0;
-    await users.AsyncForeach(async d => {
-        let sumday = 0;
-        let fri = await dbo.collection("movement").findOne({ "id": d.id, "day": 5 })
-        let sat = await dbo.collection("movement").findOne({ "id": d.id, "day": 6 })
-        let sun = await dbo.collection("movement").findOne({ "id": d.id, "day": 7 })
-        if (fri != null)
-            sumday++
-        if (sat != null)
-            sumday++
-        if (sun != null)
-            sumday++
-        await dbo.collection("users").updateOne({ "id": d.id }, {
-            $set: {
-                "stay_in_park": sumday
+    })
+
+
+    //console.log("complete")
+    //dbo.db_connect.close()
+
+}
+
+async function calNeighbor() {
+    let users_array = await dbo.collection("users").find({}).toArray();
+    let users = new Map();
+    users_array.forEach(d => {
+        users.set(d.id, { id: d.id, neibor: [] })
+    })
+    // 找到所有相关的人
+    for (let i = 6; i <= 6; i++) {
+        await calOne(i, users)
+    }
+}
+
+async function calOne(i, users) {
+    // 之前出现过的
+    let previous = new Map();
+    let tl = await dbo.collection("movement_timeline").find({ "day": i }).toArray()
+    let _index = 0;
+    await tl.AsyncForeach(async ts => {
+        let movedata = await dbo.collection("movement")
+            .find({ "Timestamp": ts.Timestamp })
+            .toArray();
+        let current = new Map();
+        previous.forEach(v => {
+            v.wait++;
+        })
+        movedata.forEach(u => {
+            let record = users.get(u.id);
+            current.set(u.id, u)
+        })
+        current.forEach((v, k) => {
+            let getp = previous.get(k)
+            if (getp) {
+                getp.X = v.X;
+                getp.Y = v.Y;
+                getp.type = v.type;
+                getp.wait = 0;
+            }
+            else {
+                previous.set(k, { id: v.id, X: v.X, Y: v.Y, type: v.type, wait: 0 })
+            }
+        });
+        let mapdata = new Array(10000);
+        previous.forEach(v => {
+            const ind = v.X + v.Y * 100;
+            if (!mapdata[ind])
+                mapdata[ind] = [];
+            mapdata[ind].push(v)
+        })
+        previous.forEach(v => {
+            for (let iq = -1; iq <= 1; iq++) {
+                for (let j = -1; j <= 1; j++) {
+                    if (v.X + iq >= 0 && v.X + iq < 100 && v.Y + j >= 0
+                        && v.Y + j < 100) {
+                        const ind = (v.X + iq) + (v.Y + j) * 100
+                        let around = mapdata[ind]
+                        if (around) {
+                            around.forEach(ne => {
+                                if (ne.wait < 180) {
+                                    if (!v.neibor) {
+                                        v.neibor = new Map()
+                                    }
+                                    let g = v.neibor.get(ne.id)
+                                    if (!g)
+                                        v.neibor.set(ne.id, 1)
+                                    else
+                                        v.neibor.set(ne.id, g + 1)
+                                }
+                            })
+                        }
+                    }
+                }
+            }
+        })
+        _index++;
+        if (_index % 100 == 0) console.log(ts.Timestamp)
+    })
+    let pppp = Array.from(previous.values())
+    await pppp.AsyncForeach(async u => {
+        let ne = []
+
+        u.neibor.forEach((nc, nid) => {
+            ne.push({
+                id: nid,
+                count: nc
+            })
+        })
+        let nn = {
+            day: i,
+            data: ne
+        }
+        await dbo.collection("users").updateOne({ "id": u.id }, {
+            $push: {
+                "neibor": nn
             }
         })
     })
-
-    console.log("complete")
-    dbo.db_connect.close()
-
+    console.log("-----------------cmp---------------")
+    console.log("day:-----" + i)
 }
 
 async function assigncheckin() {
     let buildings = await dbo.collection("buildings").find({}).toArray()
     await buildings.AsyncForeach(async d => {
-        let res = await dbo.collection("movement").find({ "X": d.x, "Y": d.y, "type": "check-in" }).limit(1).toArray()
-        if (res.length == 0) {
+        let res = await dbo.collection("movement").findOne({ "X": d.x, "Y": d.y })
+        if (!res) {
             console.log("not find: " + d.building)
             return
         }
-        await dbo.collection("buildings").updateOne({ "building": d.building }, {
-            $set: {
-                "checkin": true
-            }
-        })
-
+        //await dbo.collection("buildings").updateOne({ "building": d.building }, {
+        //    $set: {
+        //        "checkin": true
+        //    }
+        //})
+        //
     })
 }
 

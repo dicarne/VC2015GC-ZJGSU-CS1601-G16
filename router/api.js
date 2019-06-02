@@ -79,10 +79,28 @@ route.get("/map/:day/:time", async (req, res) => {
     }
     if (!dayin)
         res.json({ error: "out of day range" })
-    getMapFriData(time, dayin, (data, time) => {
-        res.json({
-            array: data,
-            Timestamp: time
+    else
+        getMapFriData(time, dayin, (data, time) => {
+            res.json({
+                array: data,
+                Timestamp: time
+            })
         })
-    })
 })
+
+route.get("/users/path", async (req, res) => {
+    // users/path?id=12345
+    let uid = req.query.id;
+    let theuser = await dbo.collection("path").findOne({ "id": uid });
+    res.json(theuser);
+})
+
+route.get("/map/max", (req, res) => {
+    if (req.query.day == "5") {
+        res.json({ length: map_pos_fri.length })
+        return;
+    }
+    res.json({ length: -1 })
+})
+
+//require("../monque.js")
