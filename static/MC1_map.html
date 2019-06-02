@@ -5,36 +5,98 @@
     <meta charset="UTF-8">
     <link rel="stylesheet" href="lib/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="lib/bootstrap/css/bootstrap-theme.min.css">
+    <link href="http://cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
     <script src="lib/bootstrap/js/bootstrap.min.js"></script>
     <script src="js/d3/d3.js"></script>
     <script src="js/heatmap/heatmap.js"></script>
-    <script type='module' src="js/vc2015gc.js"></script>
     <style>
         .map {
             position: absolute;
             width: 1000px;
             height: 1000px;
         }
-
+        #tagshow{
+            background-color: aliceblue
+        }
+    </style>
+    <style>
+        .rectstyle{
+            stroke:black; 
+            stroke-width: "1";
+            stroke-linecap: "round";
+            fill:white;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: "10";
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1 id="Timestamp" class="text-center"></h1>
-        <input type="range" id="id_slider" style="width: 1000px;">
+        <div class="container">
+            <h1 id="Timestamp" class="text-center"></h1>
+            <input type="range" id="id_slider" style="width: 1000px;">
+            <br>
+            <div class="control-group">
+                <button type="button" onclick="switchTo(5)" class="btn btn-default">周五</button>
+                <button type="button" onclick="switchTo(6)" class="btn btn-default">周六</button>
+                <button type="button" onclick="switchTo(7)" class="btn btn-default">周日</button>
+            </div>
+        </div>
+
+
+
         <br>
+
         <div class="center-block">
             <canvas id="comm_wheel" class="map" width="1000" height="1000"></canvas>
             <div id="heat_map" class="map" width="1000" height="1000"></div>
             <div id="svg_map" class="map"></div>
-            
+            <form class="form-horizontal pull-right form" id="tagshow">
+                <fieldset>
+                    <legend>
+                        显示游客标签
+                    </legend>
+                    <div class="control-group">
+                        <div class="controls">
+                            <label class="checkbox">
+                                <input type="checkbox" onclick="chickListChanged()" value="Thrill" name="tagChecklist" checked>刺激项目
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" onclick="chickListChanged()" value="Kiddle" name="tagChecklist" checked>儿童项目
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" onclick="chickListChanged()" value="Everyone" name="tagChecklist" checked>适合任何人
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" onclick="chickListChanged()" value="Food" name="tagChecklist" checked>餐饮
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" onclick="chickListChanged()" value="Restrooms" name="tagChecklist" checked>休息区
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" onclick="chickListChanged()" value="Gardens" name="tagChecklist" checked>花园
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" onclick="chickListChanged()" value="Shopping" name="tagChecklist" checked>购物
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" onclick="chickListChanged()" value="Shows" name="tagChecklist" checked>表演娱乐
+                            </label>
+                            <label class="checkbox">
+                                <input type="checkbox" onclick="chickListChanged()" value="Assistance" name="tagChecklist" checked>咨询服务台
+                            </label>
+                        </div>
+                    </div>
+                </fieldset>
+            </form>
         </div>
 
     </div>
 
 
 </body>
+<script src="js/MC1/d3map_with_time.js"></script>
 
 </html>

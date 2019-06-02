@@ -27,45 +27,22 @@ async function getDb() {
             rej(error)
     })
 }
-//DBqueue()
+DBqueue()
 let map_pos_fri = []
 let dbo;
 async function DBqueue() {
 
     dbo = await getDb();
     let i = 0;
-    dbo.collection("users").find({ "neibor.day": 6 }).forEach(item => {
-        dbo.collection("users").findOne({ "id": item.id }, d => {
-            let di = 0;
-            let newdata;
-            for (di = 0; di < item.neibor.length; di++) {
-                const day = item.neibor[di];
-                if (day.day == 6) {
-                    newdata = day.data
-                    for (let i = 0; i < day.data.length; i++) {
-                        el = day.data[i];
-                        el.id = el._id
-                        delete el._id
-                    }
-                    break;
-                }
-            }
-            dbo.collection("users")
-            .updateOne({ "id": item.id }, 
-            { $set:{
-                "neibor.$[day]":newdata
-            } },
-            {
-                arrayFilters : [
-                    {
-                        "day": 6
-                    }
-                ]
-            })
-            i++;
-            if (i % 1000 == 0)
-                console.log("running");
-        })
+
+
+    let users = await dbo.collection("users").find({ stay_in_park: 3 })
+    users.forEach(async d => {
+        let r = await dbo.collection("movement").find({ id: d.id, X: 76, Y: 22, type: "check-in" }).toArray()
+        if (r.length >= 3) {
+            dbo.collection("check_in_parkshow").insertOne({ id: d.id, count: r.length, detail: r })
+            console.log(d.id + " " + r.length)
+        }
 
     })
 

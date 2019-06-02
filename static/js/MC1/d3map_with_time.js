@@ -6,9 +6,10 @@ var canvas = document.querySelector("#comm_wheel"),
 var mapimg = new Image();
 var svg_cavas = d3.select("#svg_map").append("svg:svg").attr("width", 1000).attr("height", 1000);
 var svg = svg_cavas.append("g")
+var svgmid = svg_cavas.append("g")
 var svgtop = svg_cavas.append("g")
+var svgvip = svg_cavas.append("g")
 
-var timeline = [];
 let id_slider;
 /**
  * 初始化id滑块
@@ -17,20 +18,28 @@ function id_slider_init() {
     id_slider = document.getElementById("id_slider");
     id_slider.onchange = id_select_changed;
 }
-export function Start() {
+
+function Start() {
     id_slider_init();
     mapimg.src = "/analyse/ParkMap.jpg";
     mapimg.onload = () => {
         context.drawImage(mapimg, 0, 0, 1000, 1000);
     }
-
+    getVip()
     updateTimeLine(0)
+}
+let vipMap = new Map()
+async function getVip(){
+    let vip = await d3.json("/api/users/important");
+    vip.forEach(v=>{
+        vipMap.set(v.id, {X:-1, Y:-1})
+    })
 }
 let betweenTime = 10;
 let forceSetTime = -1;
 function updateTimeLine(t) {
     setTimeout(() => {
-        if(forceSetTime >= 0){
+        if (forceSetTime >= 0) {
             t = forceSetTime;
             forceSetTime = -1;
         }
@@ -54,8 +63,9 @@ let timetext = document.getElementById("Timestamp");
 let previous = new Map();
 let skiptime = 1;
 async function showPosAtTime(time_t) {
-    if(time_t == 0){    
-        let time_length = await d3.json("/api/map/max?day=5")
+    let time_should_be = theday
+    if (time_t == 0) {
+        let time_length = await d3.json("/api/map/max?day=" + theday)
         id_slider.value = 0;
         id_slider.max = time_length.length;
     }
@@ -68,7 +78,17 @@ async function showPosAtTime(time_t) {
         return
     }
     for (let i = 0; i < skiptime; i++) {
-        timedata = await d3.json("/api/map/fri/" + time_t);
+        let url = "/api/map/time?day=" + theday + "&time=" + time_t
+        if (checked.length > 0) {
+            for (let i = 0; i < checked.length; i++) {
+                url += "&check[" + i + "]=" + checked[i]
+            }
+        }
+        timedata = await d3.json(url);
+        if (time_should_be != theday) {
+            updateTimeLine(forceSetTime)
+            return;
+        }
         time_t++;
         let map = new Array(10000);
         if (timedata == null)
@@ -87,10 +107,12 @@ async function showPosAtTime(time_t) {
     drawSpot(drawdata)
     drawUsers(drawdata)
     let date = timedata.Timestamp
-    timetext.innerHTML = date.Timestamp;
+    let dateobj = new Date(Date.parse(date.Timestamp))
+    timetext.innerHTML = dateobj.getMonth() + "月 " + (dateobj.getDay() + 6) + "日: " + dateobj.getHours() + "时 " + dateobj.getMinutes() + "分 " + dateobj.getSeconds() + "秒"
 
     updateTimeLine(time_t)
 }
+let k = 1 + 2;
 
 function drawSpot(drawdata) {
     let check_in_map = new Map();
@@ -119,22 +141,23 @@ function drawSpot(drawdata) {
         .attr("stroke", "#4B4B4B")
         .attr("stroke-width", "2")
         .on("mouseover", d => {
-            console.log(d)
             let fx = 0;
             if (d.cx >= 800)
-                fx = d.cx - 100;
+                fx = d.cx - 140;
             else
                 fx = d.cx
             svg.append("rect")
-                .attr("x", fx)
-                .attr("y", d.cy - 20)
-                .attr("width", 100)
+                .attr("x", fx + 20)
+                .attr("y", d.cy - 40)
+                .attr("rx", 5)
+                .attr("ry", 5)
+                .attr("width", 140)
                 .attr("height", 25)
                 .attr("fill", "#fff")
-                .attr("class", "user-tips")
+                .attr("class", "user-tips rectstyle")
             svg.append("text")
-                .attr("x", fx)
-                .attr("y", d.cy)
+                .attr("x", fx + 24)
+                .attr("y", d.cy - 23.5)
                 .text("x:" + d.X + ";y:" + d.Y)
                 .attr("class", "user-tips")
 
@@ -151,6 +174,8 @@ function drawUsers(drawdata) {
         .data(drawdata)
         .join("circle")
         .attr("class", d => {
+            if(vipMap.has(d.id))
+                vipMap.set(d.id, d)
             if (user_show_path.has(d.id)) {
                 user_show_path.set(d.id, d);
                 return "user highlightuser";
@@ -162,20 +187,22 @@ function drawUsers(drawdata) {
         .on("mouseover", d => {
             let fx = 0;
             if (d.cx >= 800)
-                fx = d.cx - 100;
+                fx = d.cx - 140;
             else
                 fx = d.cx
             svg.append("rect")
-                .attr("x", fx)
-                .attr("y", d.cy - 20)
-                .attr("width", 100)
+                .attr("x", fx + 20)
+                .attr("y", d.cy - 40)
+                .attr("rx", 5)
+                .attr("ry", 5)
+                .attr("width", 140)
                 .attr("height", 25)
                 .attr("fill", "#fff")
-                .attr("class", "user-tips")
+                .attr("class", "user-tips rectstyle")
             svg.append("text")
-                .attr("x", fx)
-                .attr("y", d.cy)
-                .text("x:" + d.X + ";y:" + d.Y)
+                .attr("x", fx + 24)
+                .attr("y", d.cy - 23.5)
+                .text("id:" + d.id + " x:" + d.X + ";y:" + d.Y)
                 .attr("class", "user-tips")
             pause = true;
         })
@@ -201,9 +228,20 @@ function drawUsers(drawdata) {
             if (user_show_path.has(d.id)) {
                 return d3.rgb(255, 0, 0);
             }
-            computeColor(linear(d.lastUpdate));
+            if (user_show_path.size > 0) {
+                let final_color = "grey"
+                user_show_path.forEach(v => {
+                    if (neibor.has(d.id)) {
+                        console.log("woo " + d.id)
+                        neiborUser.set(d.id, d)
+                        return
+                    }
+                })
+                return final_color
+            }
+            return computeColor(linear(d.lastUpdate));
         })
-        
+
     svgtop.selectAll(".highuser")
         .data(Array.from(user_show_path.values()))
         .join("circle")
@@ -217,20 +255,110 @@ function drawUsers(drawdata) {
         .on("mouseover", d => {
             let fx = 0;
             if (d.cx >= 800)
-                fx = d.cx - 100;
+                fx = d.cx - 140;
             else
                 fx = d.cx
             svg.append("rect")
-                .attr("x", fx)
-                .attr("y", d.cy - 20)
-                .attr("width", 100)
+                .attr("x", fx + 20)
+                .attr("y", d.cy - 40)
+                .attr("rx", 5)
+                .attr("ry", 5)
+                .attr("width", 140)
                 .attr("height", 25)
                 .attr("fill", "#fff")
-                .attr("class", "user-tips")
+                .attr("class", "user-tips rectstyle")
             svg.append("text")
-                .attr("x", fx)
-                .attr("y", d.cy)
-                .text("x:" + d.X + ";y:" + d.Y)
+                .attr("x", fx + 24)
+                .attr("y", d.cy - 23.5)
+                .text("id:" + d.id + " x:" + d.X + ";y:" + d.Y)
+                .attr("class", "user-tips")
+            pause = true;
+        })
+        .on("mouseout", d => {
+            d3.selectAll(".user-tips").remove()
+
+            pause = false;
+        })
+        .on("click", d => {
+            if (!user_show_path.has(d.id)) {
+                drawUserPath(d);
+            }
+            else {
+                removeUserPath(d);
+                d.show = false;
+            }
+        })
+    refearchNeiborUser()
+    svgmid.selectAll(".neiboruser")
+        .data(Array.from(neiborUser.values()))
+        .join("circle")
+        .attr("cx", d => { d.cx = d.X * 10; return d.cx; })
+        .attr("cy", d => { d.cy = (100 - d.Y) * 10; return d.cy; })
+        .attr("fill", d => {
+            return d3.rgb(0, 0, 220);
+        })
+        .attr("r", 5)
+        .attr("class", "neiboruser")
+        .on("mouseover", d => {
+            let fx = 0;
+            if (d.cx >= 800)
+                fx = d.cx - 140;
+            else
+                fx = d.cx
+            svg.append("rect")
+                .attr("x", fx + 20)
+                .attr("y", d.cy - 40)
+                .attr("rx", 5)
+                .attr("ry", 5)
+                .attr("width", 140)
+                .attr("height", 25)
+                .attr("fill", "#fff")
+                .attr("class", "user-tips rectstyle")
+            svg.append("text")
+                .attr("x", fx + 24)
+                .attr("y", d.cy - 23.5)
+                .text("id:" + d.id + " x:" + d.X + ";y:" + d.Y)
+                .attr("class", "user-tips")
+            pause = true;
+        })
+        .on("mouseout", d => {
+            d3.selectAll(".user-tips").remove()
+
+            pause = false;
+        })
+
+
+
+
+        svgvip.selectAll(".vipuser")
+        .data(Array.from(vipMap.values()))
+        .join("circle")
+        .attr("cx", d => { d.cx = d.X * 10; return d.cx; })
+        .attr("cy", d => { d.cy = (100 - d.Y) * 10; return d.cy; })
+        .attr("fill", d => {
+            return d3.rgb(255, 0, 255);
+        })
+        .attr("r", 5)
+        .attr("class", "vipuser")
+        .on("mouseover", d => {
+            let fx = 0;
+            if (d.cx >= 800)
+                fx = d.cx - 140;
+            else
+                fx = d.cx
+            svg.append("rect")
+                .attr("x", fx + 20)
+                .attr("y", d.cy - 40)
+                .attr("rx", 5)
+                .attr("ry", 5)
+                .attr("width", 140)
+                .attr("height", 25)
+                .attr("fill", "#fff")
+                .attr("class", "user-tips rectstyle")
+            svg.append("text")
+                .attr("x", fx + 24)
+                .attr("y", d.cy - 23.5)
+                .text("id:" + d.id + " x:" + d.X + ";y:" + d.Y)
                 .attr("class", "user-tips")
             pause = true;
         })
@@ -249,14 +377,44 @@ function drawUsers(drawdata) {
             }
         })
 }
+var neihigh_map = new Map();
+var neiborUser = new Map();
+function refearchNeiborUser() {
+    let tmparr = Array.from(neiborUser.values())
+    neiborUser = new Map()
+    for (let i = 0; i < tmparr.length; i++) {
+        const d = tmparr[i];
+        //if (previous.has(d.id)) {
+        user_show_path.forEach(v => {
+            if (neibor.has(d.id)) {
+                neiborUser.set(d.id, d)
+                return
+            }
+        })
+        //}
+    }
+}
 
+let neibor = new Map()
 async function drawUserPath(d) {
+    user_show_path.clear()
+    user_show_path.set(d.id, d)
+    neiborUser = new Map();
+    neibor = new Map()
+
     user_show_path.set(d.id, d);
     const id = d.id;
     let pathdata = await d3.json("/api/users/path?id=" + d.id);
     pathbuff.push(pathdata);
     d.show = true;
     drawPath();
+    let nei = await d3.json("/api/users/neibor?id=" + d.id + "&day=" + theday)
+    let userp = user_show_path.get(d.id)
+    nei.forEach(k => {
+        if (k.id == undefined)
+            k.id = k._id
+        neibor.set(k.id, k)
+    })
 }
 
 function removeUserPath(d) {
@@ -277,29 +435,28 @@ function drawPath() {
     pathbuff.forEach(d => {
         for (let i = 0; i < d.pathlist.length; i++) {
             const daypath = d.pathlist[i];
-            if (daypath.day == 5) {
-                context.beginPath();
-                for (let j = 0; j < daypath.path.length; j++) {
-                    const point = daypath.path[j];
-                    if (j == 0) {
-                        context.moveTo(point.X * 10, (100 - point.Y) * 10)
+            if (daypath.day == theday) {
+            context.beginPath();
+            for (let j = 0; j < daypath.path.length; j++) {
+                const point = daypath.path[j];
+                if (j == 0) {
+                    context.moveTo(point.X * 10, (100 - point.Y) * 10)
+                } else {
+                    context.lineTo(point.X * 10, (100 - point.Y) * 10)
+                    let dis = distance(point, daypath.path[j - 1])
+                    if (dis > 5) {
+                        context.strokeStyle = d3.gray(50);
+                        context.stroke()
+                        context.beginPath()
                     } else {
-                        context.lineTo(point.X * 10, (100 - point.Y) * 10)
-                        let dis = distance(point, daypath.path[j-1])
-                        if(dis>5)
-                        {
-                            context.strokeStyle = d3.gray(50);
-                            context.stroke()
-                            context.beginPath()
-                        }else{
-                            context.strokeStyle = d3.rgb(50,50,50);
-                            context.stroke()
-                            context.beginPath()
-                        }
-                        context.moveTo(point.X * 10, (100 - point.Y) * 10)
+                        context.strokeStyle = d3.rgb(50, 50, 50);
+                        context.stroke()
+                        context.beginPath()
                     }
+                    context.moveTo(point.X * 10, (100 - point.Y) * 10)
                 }
-                context.stroke();
+            }
+            context.stroke();
             }
         }
     })
@@ -315,12 +472,37 @@ function pos2id(x, y) {
     return x + "," + y;
 }
 
-function distance(p1, p2)
-{
-    return Math.sqrt(Math.pow(p1.X-p2.X, 2)+Math.pow(p1.Y-p2.Y,2))
+function distance(p1, p2) {
+    return Math.sqrt(Math.pow(p1.X - p2.X, 2) + Math.pow(p1.Y - p2.Y, 2))
 }
 
-function id_select_changed(){
+function id_select_changed() {
     forceSetTime = id_slider.value;
     previous = new Map();
 }
+var theday = 7;
+function switchTo(to_day) {
+    theday = to_day;
+    //id_slider.value = 0;
+    forceSetTime = id_slider.value;
+    previous = new Map();
+    pathbuff = [];
+    user_show_path = new Map()
+    svg.selectAll(".user").remove()
+    svg.selectAll(".spot").remove()
+    svgtop.selectAll(".highuser").remove()
+}
+let checked = []
+function chickListChanged() {
+    let checklist = document.getElementsByName("tagChecklist")
+    checked = []
+    checklist.forEach(d => {
+        if (d.checked)
+            checked.push(d.value)
+    })
+    previous.clear()
+
+}
+
+Start()
+chickListChanged()
