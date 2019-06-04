@@ -57,7 +57,20 @@ async function DBqueue() {
 }
 let usersTagmap = new Map()
 require("../lib/asynclib.js")
-async function getMapFriData(time, current_day, ignore, callback) {
+async function getMapFriData(time, current_day, ignore, onlyimportant, openLeven, callback) {
+    onlyimportant = parseInt(onlyimportant)
+    openLeven = parseInt(openLeven)
+    if (openLeven == 1) {
+        let res1 = []
+        await leven.AsyncForeach(async u => {
+            let res = await dbo.collection("movement")
+                .findOne({ "Timestamp": timeline_arr[current_day - 5][time].Timestamp, id: u.id })
+            if (res)
+                res1.push(res)
+        })
+        callback(res1, timeline_arr[current_day - 5][time])
+        return
+    }
     if (ignore == undefined)
         ignore = []
     time = parseInt(time)
@@ -66,30 +79,42 @@ async function getMapFriData(time, current_day, ignore, callback) {
             return null
         })
     //let dbo = await getDb();
-    let res1 = await dbo.collection("movement")
-        .find({ "Timestamp": timeline_arr[current_day - 5][time].Timestamp })
-        .toArray();
+    let res1 = []
+    if (onlyimportant == 1)
+        await vip.AsyncForeach(async u => {
+            let res = await dbo.collection("movement")
+                .findOne({ "Timestamp": timeline_arr[current_day - 5][time].Timestamp, id: u })
+            if (res)
+                res1.push(res)
+        })
+    else
+        res1 = await dbo.collection("movement")
+            .find({ "Timestamp": timeline_arr[current_day - 5][time].Timestamp })
+            .toArray();
     let rep = []
     await res1.AsyncForeach(async el => {
         if (!usersTagmap.has(el.id)) {
-            let u = await dbo.collection("users").findOne({ id: el.id })
-            if (!u)
-                console.log("???  " + el.id)
-            else{
-                let tm = new Map()
-                u.tag.forEach(t=>[
-                    tm.set(t.t, t.c)
-                ])
-                usersTagmap.set(el.id, tm)
-            }
+            dbo.collection("users").findOne({ id: el.id }, (err, u) => {
+                if (!u)
+                    console.log("???  " + el.id)
+                else {
+                    let tm = new Map()
+                    u.tag.forEach(t => [
+                        tm.set(t.t, t.c)
+                    ])
+                    usersTagmap.set(el.id, tm)
+                }
+            })
+
         }
         let g = usersTagmap.get(el.id)
-        for (let i = 0; i < ignore.length; i++) {
-            if (g.has(ignore[i])) {
-                rep.push(el)
-                return
+        if (g)
+            for (let i = 0; i < ignore.length; i++) {
+                if (g.has(ignore[i])) {
+                    rep.push(el)
+                    return
+                }
             }
-        }
     });
     //dbo.db_connect.close();
     callback(rep, timeline_arr[current_day - 5][time])
@@ -99,6 +124,10 @@ route.get("/map/time", async (req, res) => {
     let data = queryString.parse(req.url.split("?")[1], { arrayFormat: 'index' })
     let day = data.day
     let time = data.time
+    let onlyimportant = data.important
+    if (!onlyimportant) onlyimportant = 0
+    let openLeven = data.leven
+    if (!openLeven) openLeven = 0
     let dayin = 0;
     if (day == "5") {
         dayin = 5
@@ -112,7 +141,7 @@ route.get("/map/time", async (req, res) => {
     if (!dayin)
         res.json({ error: "out of day range" })
     else
-        getMapFriData(time, dayin, data.check, (data, time) => {
+        getMapFriData(time, dayin, data.check, onlyimportant, openLeven, (data, time) => {
             res.json({
                 array: data,
                 Timestamp: time
@@ -167,8 +196,97 @@ route.get("/users/neibor", (req, res) => {
             res.json(arr)
         })
 })
-
-route.get("/users/important", async (req, res)=>{
-    let result = await dbo.collection("check_in_parkshow").find({}).toArray()
+let vip = []
+route.get("/users/important", async (req, res) => {
+    let result = await dbo.collection("few_checkin_users").find({ "data.X": 32, "data.Y": 33 }).toArray()
+    //let result = [{ id: "134576" }]
+    result.forEach(u => {
+        vip.push(u.id)
+    })
     res.json(result)
+})
+let leven = []
+let levenMap = new Map()
+route.get("/users/leven", async (req, res) => {
+    if (leven.length == 0) {
+        let result = await dbo.collection("sun_morning_check_path").find({}).toArray()
+        leven = result
+    }
+
+
+    res.json(leven)
+})
+
+route.get("/users/leven/fliter", async (req, res) => {
+    let strength = parseInt(res.query.strength)
+    let result = await dbo.collection("sun_morning_pair")
+        .find({ len: { $lte: strength } })
+        .distinct("pairA")
+})
+
+route.get("/pair/zero", async (req, res) => {
+    let result = await dbo.collection("sun_morning_group").find({}).toArray()
+    res.json(result)
+})
+route.get("/pair/group", async (req, res) => {
+    let strength = parseInt(req.query.strength)
+    getGroupOf(strength, res)
+    //let result = await dbo.collection("sun_morning_group").find({}).toArray()
+    //res.json(result)
+})
+function getGroupOf(srength, res) {
+    let zeroMap = new Map()
+    dbo.collection("sun_morning_pair")
+        .find({ len: { $lte: srength } }).forEach(u => {
+            let g = zeroMap.get(u.pairA)
+            if (!g) {
+                zeroMap.set(u.pairA, [u.pairB])
+            } else {
+                g.push(u.pairB)
+            }
+        }, () => {
+            // end
+            let keys = Array.from(zeroMap.keys())
+            let groupInd = 0
+            let result = []
+            while (zeroMap.size > 0) {
+                let el;
+                while (!zeroMap.has(el)) {
+                    el = keys.pop()
+                    if (!el) {
+                        break;
+                    }
+                }
+                if (!el)
+                    break;
+                let g = zeroMap.get(el)
+                let group = []
+                group.push(el)
+                zeroMap.delete(el)
+                while (g.length > 0) {
+                    let ge = g.pop()
+                    if (zeroMap.has(ge)) {
+                        group.push(ge)
+                        g = g.concat(zeroMap.get(ge))
+                        zeroMap.delete(ge)
+                    }
+                }
+                result.push({ gid: groupInd, group: group })
+                groupInd++
+            }
+            console.log("getGroupEnd")
+            res.json(result)
+        })
+}
+
+route.get("/users/suspect", (req, res) => {
+    dbo.collection("sun_morning_stay_over_1").find({}).toArray((err, arr) => {
+        res.json(arr)
+    })
+})
+
+route.get("/users/actor", (req, res) => {
+    dbo.collection("only_checkin_entrance").find({}).toArray((err,arr)=>{
+        res.json(arr)
+    })
 })

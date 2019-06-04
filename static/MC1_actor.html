@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="lib/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="lib/bootstrap/css/bootstrap-theme.min.css">
+    <link href="http://cdn.bootcss.com/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+    <script src="lib/bootstrap/js/bootstrap.min.js"></script>
+    <script src="js/d3/d3.js"></script>
+    <script src="js/heatmap/heatmap.js"></script>
+    <style>
+        .map {
+            position: absolute;
+            width: 1000px;
+            height: 1000px;
+        }
+
+        #tagshow {
+            background-color: aliceblue
+        }
+        #main-canvas{
+            height: 1010px;
+        }
+    </style>
+    <style>
+        .rectstyle {
+            stroke: black;
+            stroke-width: "1";
+            stroke-linecap: "round";
+            fill: white;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: "10";
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="container">
+            <!--
+                <h3>嫌疑人</h3>
+            <p id="group-id"></p>
+            <input type="text" id="id_input">
+            <input type="range" id="id_slider" style="width: 900px;">
+            <br>
+            -->
+
+            <h3>播放速度</h3>
+            <p id="group-strength"></p>
+            <input type="range" id="speed_slider" style="width: 900px;">
+            <br>
+
+            <div class="control-group">
+                <button type="button" onclick="switchTo(5)" class="btn btn-default">周五</button>
+                <button type="button" onclick="switchTo(6)" class="btn btn-default">周六</button>
+                <button type="button" onclick="switchTo(7)" class="btn btn-default">周日</button>
+            </div>
+            <h4 id="Timestamp"></h4>
+        </div>
+
+        <br>
+
+        <div class="center-block" id="main-canvas">
+            <canvas id="comm_wheel" class="map" width="1000" height="1000"></canvas>
+            <div id="heat_map" class="map" width="1000" height="1000"></div>
+            <div id="svg_map" class="map"></div>
+        </div>
+        <div class="container">
+            <ul id="actor-list"></ul>
+        </div>
+
+
+        </ul>
+
+    </div>
+
+
+</body>
+<script src="js/MC1/show_actor_together.js"></script>
+
+</html>
