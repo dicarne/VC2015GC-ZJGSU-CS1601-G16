@@ -20,11 +20,11 @@ function id_slider_init() {
     id_slider = document.getElementById("id_slider");
     id_slider.onchange = id_select_changed;
     id_slider.value = 0
-    speed_slider = document.getElementById("speed_slider");
-    speed_slider.value = 0
-    speed_slider.max = 5
-    speed_slider.min = 0
-    speed_slider.onchange = speed_select_changed;
+    //speed_slider = document.getElementById("speed_slider");
+    //speed_slider.value = 0
+    //speed_slider.max = 5
+    //speed_slider.min = 0
+    //speed_slider.onchange = speed_select_changed;
     id_input = document.getElementById("id_input")
     id_input.onchange = id_input_change
 }
@@ -481,7 +481,7 @@ var pathLinear = d3.scaleLinear()
     .range([0, 1]);
 function drawDPathTo(d) {
     groupId.innerHTML = gid
-    groupStrength.innerHTML = strength
+    //groupStrength.innerHTML = strength
     let allCheckIn = []
     for (let i = 0; i < d.pathlist.length; i++) {
         const daypath = d.pathlist[i];
@@ -512,7 +512,7 @@ function drawDPathTo(d) {
                 context.lineTo(point.X * 10, (100 - point.Y) * 10)
                 let dis = distance(point, daypath.path[j - 1])
                 if (dis > 5) {
-                    context.strokeStyle = d3.rgb(200, 200, 200);
+                    context.strokeStyle = d3.rgb(255, 255, 255);
                     context.lineWidth = 1
                     context.stroke()
                     context.beginPath()
@@ -589,7 +589,7 @@ function drawDPathTo(d) {
                     context.lineTo(point.X * 10, (100 - point.Y) * 10)
                     let dis = distance(point, daypath.path[j - 1])
                     if (dis > 5) {
-                        context.strokeStyle = d3.rgb(222, 222, 222);
+                        context.strokeStyle = d3.rgb(255, 100, 100);
                         context.lineWidth = 2
                         context.stroke()
                         context.beginPath()

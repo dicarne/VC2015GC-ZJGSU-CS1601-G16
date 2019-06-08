@@ -11,17 +11,17 @@
 let nodes = []
 let links = []
 let node, link, simulation
-var svg = d3.select("#force-svg").append("svg:svg").attr("width", 1000).attr("height", 1000).append("g");
+var svg = d3.select("#force-svg").append("svg:svg").attr("width", 1920).attr("height", 1080).append("g");
 let config = {}
-config.width = 1000
-config.height = 1000
+config.width = 1920
+config.height = 1080
 //var worker = new Worker("js/comm_workers.js");
 
 async function StartAnalyseComment() {
     let mnodes = new Map()
     let mlinks = new Map()
     console.log("begin import")
-    let import_data = await d3.json("/api/pair/zero")
+    let import_data = await d3.json("/api/pair/zeropair")
     import_data.forEach(d => {
         let nf = mnodes.get(d.pairA)
         if (!nf)

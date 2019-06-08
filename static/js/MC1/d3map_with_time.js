@@ -36,7 +36,7 @@ function Start() {
 }
 let vipMap = new Map()
 async function getLeven() {
-    let vip = await d3.json("/api/users/important");
+    //let vip = await d3.json("/api/users/important");
     //let vip = []
     //vip.push({id:"1983765"})
     //vip.push({id:"1089132"})

@@ -228,6 +228,12 @@ route.get("/pair/zero", async (req, res) => {
     let result = await dbo.collection("sun_morning_group").find({}).toArray()
     res.json(result)
 })
+
+route.get("/pair/zeropair", async (req, res) => {
+    let result = await dbo.collection("sun_morning_pair").find({len:0}).toArray()
+    res.json(result)
+})
+
 route.get("/pair/group", async (req, res) => {
     let strength = parseInt(req.query.strength)
     getGroupOf(strength, res)
